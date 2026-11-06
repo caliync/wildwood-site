@@ -1,23 +1,19 @@
 # WILDWOOD
 
-The website for **Wildwood Farm**, a cozy survival taming game.
+The website for **Wildwood Farm**, my cozy survival taming game.
 
 **🌲 Visit the site:** https://caliync.github.io/wildwood-site/
 **▶ Play the game:** https://caliync.github.io/wildwood-farm/
 
 ## What's on the site
-- A cinematic 3D forest hero with a smoking campfire, fireflies, ground mist, and a bunny and owl living in the clearing
-- The story and the four pillars: Befriend, Grow, Defend, Forge
-- A 3D field guide of weapons, animals and structures you can rotate and zoom
-  - Day, Dusk and Night lighting (night shows glowing eyes, torches and Moonsteel)
-  - Previous / next buttons, arrow-key navigation and a turntable pause button
-  - Animals blink and twitch, and have eye highlights; wolves have a fur ruff
-  - Crop Plots with carrots, berries, mushrooms and pumpkins
-  - Chimney smoke, a barn weathervane and lantern, a watchtower flag and gate torches
-- A 3D world map of the six regions, with drifting clouds; picking a region flies the camera there
-- The menu highlights the section you're reading
+- A 3D pine forest at dusk. There's a campfire in the clearing, fireflies, an owl on a stump and a bunny hopping around the camp.
+- The story and the four pillars: Befriend, Grow, Defend, Forge.
+- A field guide with every weapon, animal and building from the game. You can spin and zoom each one. Switch the lights to night and the wolves' eyes, the gate torches and the Moonsteel blade glow.
+- A 3D map of the six regions. Click one and the camera flies over to it.
 
 ## Tech
-A single `index.html` using [three.js](https://threejs.org/) r128 and [GSAP](https://gsap.com/) 3.12, both loaded from CDNs. No build step.
+Everything is in one `index.html`. It uses [three.js](https://threejs.org/) r128 and [GSAP](https://gsap.com/) 3.12 from CDNs, so there's no build step. I built all the models in code, so there are no model files to load.
+
+To run it, open `index.html` in a browser.
 
 Made by Alli.
