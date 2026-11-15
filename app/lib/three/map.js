@@ -1,11 +1,11 @@
 // The 3D world map: six regions around one creek, with drifting clouds.
 // Ported from the original site; the region panel and marker buttons now live
 // in Vue (components/world/*). Client-only.
-import {THREE,V3,col,rng,fbm,smooth,P,plain,glowSprite,makeRenderer,fit,disposeTree,MOBILE,REDUCE} from './core.js'
+import {THREE,V3,col,rng,fbm,smooth,P,plain,glowSprite,makeRenderer,fit,disposeTree,bakeStatic,MOBILE,REDUCE} from './core.js'
 import {buildBarn,buildWell,buildTent,buildForge} from './models.js'
 import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls.js'
 import {gsap} from 'gsap'
-import {addToLoop} from './loop.js'
+import {addToLoop,lowerPixelRatio} from './loop.js'
 import {REGIONS} from '../../data/regions.js'
 
 /**
@@ -61,7 +61,7 @@ export function createWorldMap(canvas){
     const e=Math.max(Math.abs(x),Math.abs(z));if(e>60)tc.lerp(C.edge,smooth(60,68,e));
     cols.push(tc.r,tc.g,tc.b);}
   geo.setAttribute('color',new THREE.Float32BufferAttribute(cols,3));geo.computeVertexNormals();
-  const land=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({vertexColors:true,roughness:1,flatShading:false}));land.receiveShadow=land.castShadow=true;scene.add(land);
+  const land=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({vertexColors:true,roughness:1,flatShading:false}));land.receiveShadow=true;scene.add(land);
   const water=new THREE.Mesh(new THREE.PlaneGeometry(S-6,S-6),new THREE.MeshStandardMaterial({color:col(0x2f6f86),roughness:.15,metalness:.1,transparent:true,opacity:.85}));water.rotation.x=-Math.PI/2;water.position.y=-.9;scene.add(water);
   const r=rng(77),m4=new THREE.Matrix4(),q=new THREE.Quaternion(),sc=new V3();
   const clear=(x,z)=>pathD(GX(x),GZ(z))<3||creekD(GX(x),GZ(z))<2.5;
@@ -84,7 +84,7 @@ export function createWorldMap(canvas){
   const reed=new THREE.InstancedMesh(new THREE.CylinderGeometry(.08,.08,1.6,4),plain(0x8a7a4a),900);n=0;
   for(let i=0;i<9000&&n<900;i++){const x=(r()-.5)*120,z=(r()-.5)*120;if(region(x,z)!=='marsh'||Math.max(Math.abs(x),Math.abs(z))>58)continue;const h=Hm(x,z);if(h>-.3||h<-1.6)continue;
     m4.compose(P(x,h+.6,z),q,sc.setScalar(1));reed.setMatrixAt(n++,m4);}reed.count=n;scene.add(reed);
-  const put=(fn,gx,gz,s,ry)=>{const g=new THREE.Group(),x=MX(gx),z=MZ(gz);g.position.set(x,Hm(x,z),z);g.scale.setScalar(s);g.rotation.y=ry||0;scene.add(g);fn(g);return g;};
+  const put=(fn,gx,gz,s,ry)=>{const g=new THREE.Group(),x=MX(gx),z=MZ(gz);g.position.set(x,Hm(x,z),z);g.scale.setScalar(s);g.rotation.y=ry||0;scene.add(g);fn(g);bakeStatic(g);return g;};
   put(buildBarn,-56,-5,.45,Math.PI/2);put(buildWell,-40,-10.2,.6);put(buildTent,-44,-16.5,.4,.6);put(buildForge,-46,4,.32,-Math.PI/2);
   const mist=new THREE.Group();scene.add(mist);for(let i=0;i<10;i++){const s=glowSprite(0xc8d4cc,16+r()*12,.18);s.position.set(MX(84+r()*26),1+r()*2,MZ(-4+r()*46));mist.add(s);}
   const MP=(gx,y,gz)=>P(MX(gx),y,MZ(gz));
@@ -106,10 +106,12 @@ export function createWorldMap(canvas){
     if(!REDUCE)clouds.forEach(c=>{c.position.x+=c.userData.v*dt;if(c.position.x>80)c.position.x=-80;c.userData.m.opacity=.9*(1-smooth(55,78,Math.abs(c.position.x)));});
     R.render(scene,cam);
     const w=canvas.clientWidth,h=canvas.clientHeight;POS.forEach((pos,i)=>{const m=marks[i];if(!m)return;v.copy(pos).project(cam);const vis=v.z<1&&Math.abs(v.x)<1.05&&Math.abs(v.y)<1.05;m.style.display=vis?'':'none';
-      m.style.transform=`translate(${(v.x*.5+.5)*w}px,${(-v.y*.5+.5)*h}px) translate(-50%,-100%)`;});});
+      m.style.transform=`translate(${(v.x*.5+.5)*w}px,${(-v.y*.5+.5)*h}px) translate(-50%,-100%)`;});},{degrade:()=>lowerPixelRatio(R),onError:()=>dispose()});
+  let disposed=false;
+  function dispose(){if(disposed)return;disposed=true;stop();gsap.killTweensOf([ctr.target,cam.position]);ctr.removeEventListener('start',onStart);ctr.dispose();disposeTree(scene);R.dispose();}
   return {
     flyTo(i){ctr.autoRotate=false;flyTo(POS[i]);},
     setMarkers(els){marks=els;},
-    dispose(){stop();gsap.killTweensOf([ctr.target,cam.position]);ctr.removeEventListener('start',onStart);ctr.dispose();disposeTree(scene);R.dispose();}
+    dispose
   };
 }

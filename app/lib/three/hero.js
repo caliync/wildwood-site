@@ -1,14 +1,14 @@
 // The hero: a misty pine forest at dusk with a campfire, fireflies, an owl on a
 // stump and a bunny hopping around camp. Ported from the original site.
 // Client-only (see core.js).
-import {THREE,V3,UP,col,rng,fbm,smooth,T,tex,M,P,mesh,beam,rock,makeRenderer,fit,disposeTree,MOBILE,REDUCE} from './core.js'
+import {THREE,V3,UP,col,rng,fbm,smooth,T,tex,M,P,mesh,beam,rock,makeRenderer,fit,disposeTree,bakeStatic,MOBILE,REDUCE} from './core.js'
 import {buildCamp,buildBunny,buildOwl} from './models.js'
 import {EffectComposer} from 'three/examples/jsm/postprocessing/EffectComposer.js'
 import {RenderPass} from 'three/examples/jsm/postprocessing/RenderPass.js'
 import {ShaderPass} from 'three/examples/jsm/postprocessing/ShaderPass.js'
 import {UnrealBloomPass} from 'three/examples/jsm/postprocessing/UnrealBloomPass.js'
 import {GammaCorrectionShader} from 'three/examples/jsm/shaders/GammaCorrectionShader.js'
-import {addToLoop} from './loop.js'
+import {addToLoop,lowerPixelRatio} from './loop.js'
 
 /**
  * @typedef {Object} HeroOptions
@@ -63,14 +63,15 @@ export function createHeroScene(canvas,{push,onFirstFrame}){
   for(let i=0;i<70;i++){const x=(R0()-.5)*100,z=(R0()-.5)*100-10;if(Math.hypot(x,z)<5)continue;rock(props,.3+R0()*1.2,x,H(x,z),z,i);}
   for(let i=0;i<18;i++){const x=(R0()-.5)*80,z=(R0()-.5)*80-15;if(Math.hypot(x,z)<7)continue;const a=R0()*6.28,l=3+R0()*6;
     beam(props,P(x,H(x,z)+.25,z),P(x+Math.cos(a)*l,H(x+Math.cos(a)*l,z+Math.sin(a)*l)+.25,z+Math.sin(a)*l),.32,.26,M.bark,9);}
+  bakeStatic(props);
   // camp in the clearing
-  const camp=new THREE.Group();camp.position.set(0,0,-1.5);camp.rotation.y=.25;scene.add(camp);const c=buildCamp(camp);
+  const camp=new THREE.Group();camp.position.set(0,0,-1.5);camp.rotation.y=.25;scene.add(camp);const c=buildCamp(camp);bakeStatic(camp);
   // residents of the clearing: a bunny that hops about, an owl on a stump
   const bunny=new THREE.Group();bunny.scale.setScalar(1.6);scene.add(bunny);const bU=buildBunny(bunny).update;
   const bs={x:3,z:3.8,h:2.4,p:-1,next:1.2};bunny.position.set(bs.x,H(bs.x,bs.z),bs.z);bunny.rotation.y=bs.h;
   const owlG=new THREE.Group();owlG.position.set(-3.6,H(-3.6,3),3);owlG.rotation.y=-1.2;scene.add(owlG);
   mesh(owlG,new THREE.CylinderGeometry(.32,.42,.75,12),M.bark,0,.37,0);mesh(owlG,new THREE.CircleGeometry(.32,16),M.log,0,.751,0).rotation.x=-Math.PI/2;
-  const owlIn=new THREE.Group();owlIn.position.y=.72;owlIn.scale.setScalar(1.7);owlG.add(owlIn);const oU=buildOwl(owlIn).update;
+  const owlIn=new THREE.Group();owlIn.position.y=.72;owlIn.scale.setScalar(1.7);owlG.add(owlIn);const oU=buildOwl(owlIn).update;bakeStatic(owlG);
   // fireflies
   const FN=MOBILE?40:90,fpos=new Float32Array(FN*3),fcol=new Float32Array(FN*3),fly=[];
   for(let i=0;i<FN;i++)fly.push({x:(R0()-.5)*24,z:(R0()-.5)*18+3,y:.3+R0()*2.4,k:R0()*6.28,s:.4+R0()*.6});
@@ -123,7 +124,14 @@ export function createHeroScene(canvas,{push,onFirstFrame}){
     dust.position.set(cam.position.x,0,cam.position.z-10);
     if(composer)composer.render(dt);else R.render(scene,cam);
     if(first){first=false;firstTimer=setTimeout(onFirstFrame,200);}
-  },true);
+  },{visible:true,degrade(){
+    // first lower the resolution; at the floor, drop the bloom pass
+    if(lowerPixelRatio(R)){if(composer)composer.setPixelRatio(R.getPixelRatio());return true;}
+    if(composer){dropComposer();return true;}
+    return false;
+  },onError:()=>dispose()});
+  /** Frees the bloom pipeline, passes included, and falls back to plain rendering. */
+  function dropComposer(){composer.passes.forEach(p=>p.dispose&&p.dispose());composer.renderTarget1.dispose();composer.renderTarget2.dispose();composer=null;}
   let firstTimer=0;
   function foliageGeo(){const pos=[],uv=[],nor=[],idx=[];let v=0;const r=rng(7);
     function quad(base,dir,L,w,W){const tip=base.clone().addScaledVector(dir,L),hw=w.clone().multiplyScalar(W/2);
@@ -138,9 +146,12 @@ export function createHeroScene(canvas,{push,onFirstFrame}){
       const tip=dir.clone().multiplyScalar(L);tip.y-=.25;[w.clone().negate(),w.clone(),tip.clone().sub(w),tip.clone().add(w)].forEach(p=>pos.push(p.x,p.y,p.z));uv.push(0,0,1,0,0,1,1,1);for(let i=0;i<4;i++)nor.push(0,1,0);idx.push(v,v+1,v+2,v+1,v+3,v+2);v+=4;}
     const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));geo.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));geo.setAttribute('normal',new THREE.Float32BufferAttribute(nor,3));geo.setIndex(idx);return geo;}
 
-  return function dispose(){
+  let disposed=false;
+  return dispose;
+  function dispose(){
+    if(disposed)return;disposed=true;
     stop();clearTimeout(firstTimer);removeEventListener('pointermove',onMove);
-    if(composer){composer.renderTarget1.dispose();composer.renderTarget2.dispose();}
+    if(composer)dropComposer();
     disposeTree(scene);R.dispose();
-  };
+  }
 }

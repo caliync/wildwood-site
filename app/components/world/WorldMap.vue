@@ -16,6 +16,8 @@ const markers = []
 /** @type {import('~/lib/three/map.js').WorldMap|null} */
 let map = null
 let unmounted = false
+/** True when WebGL is unavailable: the regions show as a plain list instead. */
+const failed = ref(false)
 
 /** @param {number} i */
 function pick(i) {
@@ -31,6 +33,7 @@ onMounted(async () => {
     map.setMarkers(markers)
   } catch (err) {
     console.warn('Wildwood: 3D map unavailable', err)
+    failed.value = true
   }
 })
 
@@ -54,5 +57,10 @@ onBeforeUnmount(() => {
       :aria-current="i === active ? 'true' : 'false'"
       @click="pick(i)"
     >{{ r.name }}</button>
+    <ul v-if="failed" class="region-picker" aria-label="Regions">
+      <li v-for="(r, i) in regions" :key="r.id">
+        <button type="button" :aria-current="i === active ? 'true' : 'false'" @click="active = i">{{ r.name }}</button>
+      </li>
+    </ul>
   </div>
 </template>

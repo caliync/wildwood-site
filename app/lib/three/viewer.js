@@ -5,7 +5,7 @@ import {THREE,V3,col,smooth,T,P,SPH,makeRenderer,fit,disposeTree,REDUCE} from '.
 import {MODELS} from './models.js'
 import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls.js'
 import {gsap} from 'gsap'
-import {addToLoop} from './loop.js'
+import {addToLoop,lowerPixelRatio} from './loop.js'
 
 /** @typedef {'day'|'dusk'|'night'} LightMode */
 /** @type {LightMode[]} */
@@ -75,11 +75,13 @@ export function createViewer(canvas,opts={}){
     return res.tally||{};
   }
   ctr.autoRotate=opts.spin!==undefined?opts.spin:!REDUCE;
-  const stop=addToLoop(canvas,(t,dt)=>{fit(R,cam,canvas);ctr.update();if(upd&&!REDUCE)upd(t,dt);R.render(scene,cam);});
+  const stop=addToLoop(canvas,(t,dt)=>{fit(R,cam,canvas);ctr.update();if(upd&&!REDUCE)upd(t,dt);R.render(scene,cam);},{degrade:()=>lowerPixelRatio(R),onError:()=>dispose()});
+  let disposed=false;
+  function dispose(){if(disposed)return;disposed=true;stop();if(cur)gsap.killTweensOf(cur.children[0].scale);ctr.dispose();disposeTree(scene);disposeTree(es);Object.values(ENV).forEach(t=>t.dispose());pm.dispose();R.dispose();}
   return {
     show,
     setLight(m){if(LIGHTS[m]){mode=m;applyLight();}},
     setSpin(on){ctr.autoRotate=on;},
-    dispose(){stop();if(cur)gsap.killTweensOf(cur.children[0].scale);ctr.dispose();disposeTree(scene);disposeTree(es);Object.values(ENV).forEach(t=>t.dispose());pm.dispose();R.dispose();}
+    dispose
   };
 }

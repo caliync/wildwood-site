@@ -3,6 +3,7 @@
 // Ported from the original single-file site. Client-only: this module touches
 // `document` when it loads, so import it dynamically from onMounted.
 import * as THREE from 'three'
+import {BufferGeometryUtils} from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 
 /** True on touch devices and narrow screens, where scenes use lighter settings. */
 export const MOBILE = matchMedia('(pointer: coarse)').matches || innerWidth < 700
@@ -126,20 +127,60 @@ function makeRenderer(canvas,o){const r=new THREE.WebGLRenderer(Object.assign({c
 function fit(r,cam,canvas){const w=canvas.clientWidth,h=canvas.clientHeight;if(!w||!h)return;if(canvas.width!==Math.round(w*r.getPixelRatio())||canvas.height!==Math.round(h*r.getPixelRatio())){r.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();}}
 
 /**
- * Frees the GPU resources an object tree owns. Shared geometry/materials/textures
- * from this module are skipped so other scenes can keep using them.
+ * Frees the GPU resources an object tree owns. Shared geometry, materials and
+ * textures (the toolkit's own, and three.js's shared sprite quad) are skipped so
+ * other models and scenes keep using them without re-uploading.
  * @param {THREE.Object3D} root
  */
 function disposeTree(root){
-  const shared=new Set([SPH,GLINT,...Object.values(M),...Object.values(furCache)]);
+  const sharedMats=[GLINT,...Object.values(M),...Object.values(furCache)];
+  const shared=new Set(sharedMats);
   const sharedTex=new Set(Object.values(T));
+  // the shared materials' own maps (clones made by tex()) are shared too, and cloned
+  // materials (ghost wolf, Spirit Fawn) still point at them
+  sharedMats.forEach(m=>Object.values(m).forEach(v=>{if(v&&v.isTexture)sharedTex.add(v);}));
   root.traverse(o=>{
-    if(o.geometry&&o.geometry!==SPH&&o.geometry!==PUMPKIN_REF.geo)o.geometry.dispose();
+    if(o.geometry&&!o.isSprite&&o.geometry!==SPH&&o.geometry!==PUMPKIN_REF.geo)o.geometry.dispose();
     const mats=Array.isArray(o.material)?o.material:o.material?[o.material]:[];
-    mats.forEach(m=>{if(shared.has(m))return;Object.values(m).forEach(v=>{if(v&&v.isTexture&&!sharedTex.has(v)&&!v.__shared)v.dispose();});m.dispose();});
+    mats.forEach(m=>{if(shared.has(m))return;Object.values(m).forEach(v=>{if(v&&v.isTexture&&!sharedTex.has(v))v.dispose();});m.dispose();});
+  });
+}
+
+/**
+ * Merges the static meshes under `root` into one mesh per material, so a prop
+ * built from hundreds of small parts costs a handful of draw calls. Anything
+ * inside a nested Group (fires, a weathervane, an animated animal) is left
+ * alone, because it may move. Call once, after the props are built and placed.
+ * @param {THREE.Object3D} root
+ */
+function bakeStatic(root){
+  root.updateMatrixWorld(true);
+  const inv=new THREE.Matrix4().copy(root.matrixWorld).invert(),m4=new THREE.Matrix4();
+  /** @type {Map<string,{mat:THREE.Material,cast:boolean,recv:boolean,geos:THREE.BufferGeometry[]}>} */
+  const buckets=new Map(),merged=new Set();
+  const walk=o=>{o.children.forEach(c=>{
+    if(c.isGroup)return;
+    if(c.isMesh&&!c.isInstancedMesh&&!Array.isArray(c.material)){
+      const key=c.material.uuid+(c.castShadow?'c':'')+(c.receiveShadow?'r':'');
+      let b=buckets.get(key);if(!b)buckets.set(key,b={mat:c.material,cast:c.castShadow,recv:c.receiveShadow,geos:[]});
+      const g=c.geometry.index?c.geometry.toNonIndexed():c.geometry.clone();
+      Object.keys(g.attributes).forEach(k=>{if(k!=='position'&&k!=='normal'&&k!=='uv')g.deleteAttribute(k);});
+      if(!g.attributes.uv)g.setAttribute('uv',new THREE.Float32BufferAttribute(new Float32Array(g.attributes.position.count*2),2));
+      if(!g.attributes.normal)g.computeVertexNormals();
+      g.clearGroups();g.applyMatrix4(m4.multiplyMatrices(inv,c.matrixWorld));b.geos.push(g);merged.add(c);
+    }
+    walk(c);
+  });};
+  walk(root);
+  merged.forEach(c=>{[...c.children].forEach(k=>{if(!merged.has(k))root.attach(k);});if(c.parent)c.parent.remove(c);});
+  buckets.forEach(b=>{
+    if(!b.geos.length)return;
+    const geo=b.geos.length>1?BufferGeometryUtils.mergeBufferGeometries(b.geos):b.geos[0];
+    if(b.geos.length>1)b.geos.forEach(g=>g.dispose());
+    const mesh=new THREE.Mesh(geo,b.mat);mesh.castShadow=b.cast;mesh.receiveShadow=b.recv;root.add(mesh);
   });
 }
 /** Holder so models.js can register its cached pumpkin geometry as shared. */
 const PUMPKIN_REF={geo:null};
 
-export {THREE,V3,UP,col,rng,fbm,smooth,T,tex,M,fur,plain,sh,mesh,beam,SPH,ell,P,log,box,rock,glowSprite,glint,makeSmoke,triPrism,gableRoof,makeFire,makeRenderer,fit,disposeTree,PUMPKIN_REF}
+export {THREE,V3,UP,col,rng,fbm,smooth,T,tex,M,fur,plain,sh,mesh,beam,SPH,ell,P,log,box,rock,glowSprite,glint,makeSmoke,triPrism,gableRoof,makeFire,makeRenderer,fit,disposeTree,bakeStatic,PUMPKIN_REF}

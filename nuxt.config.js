@@ -6,13 +6,17 @@
 // shows everything after 6 seconds instead of staying blank.
 const motionGate = `(function(d){try{if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;d.classList.add('js-anim');setTimeout(function(){if(!window.__wwMotion)d.classList.remove('js-anim')},6000)}catch(e){}})(document.documentElement)`
 
+const BASE = process.env.NUXT_APP_BASE_URL || '/wildwood-site/'
+/** Public address of the site, for link previews. */
+const SITE_URL = 'https://caliync.github.io/wildwood-site/'
+
 export default defineNuxtConfig({
   compatibilityDate: '2026-11-01',
   devtools: { enabled: false },
   css: ['~/assets/css/main.css'],
   app: {
     // The site is served from https://caliync.github.io/wildwood-site/
-    baseURL: process.env.NUXT_APP_BASE_URL || '/wildwood-site/',
+    baseURL: BASE,
     head: {
       htmlAttrs: { lang: 'en' },
       title: 'Wildwood',
@@ -21,8 +25,20 @@ export default defineNuxtConfig({
         { name: 'viewport', content: 'width=device-width,initial-scale=1,viewport-fit=cover' },
         { name: 'description', content: 'Wildwood Farm, a cozy survival taming game. Befriend forest animals, grow your farm, and survive the night.' },
         { name: 'theme-color', content: '#0a0d0c' },
+        // link previews (Discord, iMessage, X...)
+        { property: 'og:type', content: 'website' },
+        { property: 'og:site_name', content: 'Wildwood Farm' },
+        { property: 'og:title', content: 'Wildwood · A cozy survival taming game' },
+        { property: 'og:description', content: 'Befriend forest animals, grow your farm, and survive the night. Play the demo in your browser.' },
+        { property: 'og:url', content: SITE_URL },
+        { property: 'og:image', content: SITE_URL + 'og.jpg' },
+        { property: 'og:image:width', content: '1200' },
+        { property: 'og:image:height', content: '630' },
+        { name: 'twitter:card', content: 'summary_large_image' },
       ],
       link: [
+        { rel: 'icon', type: 'image/svg+xml', href: BASE + 'favicon.svg' },
+        { rel: 'canonical', href: SITE_URL },
         { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
         { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
         { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Marcellus&family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap' },
