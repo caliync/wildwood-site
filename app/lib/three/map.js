@@ -106,10 +106,12 @@ export function createWorldMap(canvas){
     if(!REDUCE)clouds.forEach(c=>{c.position.x+=c.userData.v*dt;if(c.position.x>80)c.position.x=-80;c.userData.m.opacity=.9*(1-smooth(55,78,Math.abs(c.position.x)));});
     R.render(scene,cam);
     const w=canvas.clientWidth,h=canvas.clientHeight;POS.forEach((pos,i)=>{const m=marks[i];if(!m)return;v.copy(pos).project(cam);const vis=v.z<1&&Math.abs(v.x)<1.05&&Math.abs(v.y)<1.05;m.style.display=vis?'':'none';
-      m.style.transform=`translate(${(v.x*.5+.5)*w}px,${(-v.y*.5+.5)*h}px) translate(-50%,-100%)`;});},{degrade:()=>lowerPixelRatio(R)});
+      m.style.transform=`translate(${(v.x*.5+.5)*w}px,${(-v.y*.5+.5)*h}px) translate(-50%,-100%)`;});},{degrade:()=>lowerPixelRatio(R),onError:()=>dispose()});
+  let disposed=false;
+  function dispose(){if(disposed)return;disposed=true;stop();gsap.killTweensOf([ctr.target,cam.position]);ctr.removeEventListener('start',onStart);ctr.dispose();disposeTree(scene);R.dispose();}
   return {
     flyTo(i){ctr.autoRotate=false;flyTo(POS[i]);},
     setMarkers(els){marks=els;},
-    dispose(){stop();gsap.killTweensOf([ctr.target,cam.position]);ctr.removeEventListener('start',onStart);ctr.dispose();disposeTree(scene);R.dispose();}
+    dispose
   };
 }

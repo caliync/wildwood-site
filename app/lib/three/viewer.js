@@ -75,11 +75,13 @@ export function createViewer(canvas,opts={}){
     return res.tally||{};
   }
   ctr.autoRotate=opts.spin!==undefined?opts.spin:!REDUCE;
-  const stop=addToLoop(canvas,(t,dt)=>{fit(R,cam,canvas);ctr.update();if(upd&&!REDUCE)upd(t,dt);R.render(scene,cam);},{degrade:()=>lowerPixelRatio(R)});
+  const stop=addToLoop(canvas,(t,dt)=>{fit(R,cam,canvas);ctr.update();if(upd&&!REDUCE)upd(t,dt);R.render(scene,cam);},{degrade:()=>lowerPixelRatio(R),onError:()=>dispose()});
+  let disposed=false;
+  function dispose(){if(disposed)return;disposed=true;stop();if(cur)gsap.killTweensOf(cur.children[0].scale);ctr.dispose();disposeTree(scene);disposeTree(es);Object.values(ENV).forEach(t=>t.dispose());pm.dispose();R.dispose();}
   return {
     show,
     setLight(m){if(LIGHTS[m]){mode=m;applyLight();}},
     setSpin(on){ctr.autoRotate=on;},
-    dispose(){stop();if(cur)gsap.killTweensOf(cur.children[0].scale);ctr.dispose();disposeTree(scene);disposeTree(es);Object.values(ENV).forEach(t=>t.dispose());pm.dispose();R.dispose();}
+    dispose
   };
 }
