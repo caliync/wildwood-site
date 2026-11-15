@@ -15,8 +15,22 @@ useGsapContext(main, (gsap) => {
   })
 })
 
+/**
+ * Lands on the section named in the URL (#world, #showcase...). The browser's own
+ * jump gets interrupted while the app starts and ScrollTrigger measures, so the
+ * page used to stop near the top instead.
+ */
+function jumpToHash() {
+  const id = decodeURIComponent(location.hash.slice(1))
+  const el = id && document.getElementById(id)
+  if (el) el.scrollIntoView({ behavior: 'instant' })
+}
+
 // Fonts and images shift the layout after load, so re-measure triggers then.
-const refresh = () => ScrollTrigger.refresh()
+function refresh() {
+  ScrollTrigger.refresh()
+  jumpToHash()
+}
 onMounted(() => {
   window.__wwMotion = true
   if (document.readyState === 'complete') refresh()

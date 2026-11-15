@@ -255,14 +255,17 @@ function buildWolf(g,v){
   if(v==='alpha'){g.scale.setScalar(1.45);for(let i=0;i<9;i++){const sp=mesh(q.body,new THREE.ConeGeometry(.035,.14,6),fur(0x1d1d1f),.3-i*.08,q.by+.27,0);sp.rotation.z=.5;}}
   if(v==='storm'){g.scale.setScalar(1.35);for(let i=0;i<7;i++){const sp=mesh(q.body,new THREE.ConeGeometry(.03,.12,5),new THREE.MeshStandardMaterial({color:col(0x6fd6ff),emissive:col(0x3aa8ff),emissiveIntensity:1.2}),.26-i*.08,q.by+.26,0);sp.rotation.z=.5;}
     const gl=glowSprite(0x6fd6ff,1.6,.35);gl.position.y=.7;g.add(gl);}
-  if(v==='ghost'){g.scale.setScalar(1.05);g.traverse(m=>{if(m.isMesh&&m.material!==M.eye){m.material=m.material.clone();m.material.emissive=col(0x9fc8e8);m.material.emissiveIntensity=.45;m.material.transparent=true;m.material.opacity=.7;}});
+  if(v==='ghost'){g.scale.setScalar(1.05);g.traverse(m=>{if(m.isMesh&&m.material!==M.eye){m.material=m.material.clone();if(m.material.emissive){m.material.emissive=col(0x9fc8e8);m.material.emissiveIntensity=.45;}m.material.transparent=true;m.material.opacity=.7;}});
     const gl=glowSprite(0xcfe6ff,2,.35);gl.position.y=.6;g.add(gl);}
   return {update:idleQuad(q,1)};
 }
 function buildFawn(g,spirit){
   const q=quadruped(g,{color:spirit?0xd8f0ff:0xa86f42,belly:spirit?0xffffff:0xe2cba8,len:.8,bodyR:.17,legH:.55,legR:.022,neck:.3,headR:.11,snout:.1,earW:.055,earH:.17,tailL:.12,tailR:.04,tailAng:.6,hoof:M.nose,innerEar:spirit?0xeaf6ff:0xe8b8a8});
   for(let i=0;i<22;i++){const a=Math.random()*Math.PI*2,b=Math.random()*.9,x=Math.cos(a)*.32*b,z=Math.sin(a)*.14*b;ell(q.body,fur(0xf3ead8),.022,.008,.018,x,q.by+.165*Math.cos(b*.9)+.01,z);}
-  if(spirit){g.traverse(m=>{if(m.isMesh){m.material=m.material.clone();m.material.emissive=col(0x6fc8ff);m.material.emissiveIntensity=.6;m.material.transparent=true;m.material.opacity=.82;}});const gl=glowSprite(0x8fd8ff,2.2,.6);gl.position.y=.8;g.add(gl);}
+  if(spirit){g.traverse(m=>{if(m.isMesh){m.material=m.material.clone();
+    // only lit materials glow; the eye catchlights are MeshBasicMaterial, and giving one an
+    // `emissive` colour makes three.js throw on every frame (it froze every 3D scene)
+    if(m.material.emissive){m.material.emissive=col(0x6fc8ff);m.material.emissiveIntensity=.6;}m.material.transparent=true;m.material.opacity=.82;}});const gl=glowSprite(0x8fd8ff,2.2,.6);gl.position.y=.8;g.add(gl);}
   return {update:idleQuad(q,.8)};
 }
 function buildBoar(g,v){
