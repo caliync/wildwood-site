@@ -12,8 +12,28 @@ The website for **Wildwood Farm**, my cozy survival taming game.
 - A 3D map of the six regions. Click one and the camera flies over to it.
 
 ## Tech
-Everything is in one `index.html`. It uses [three.js](https://threejs.org/) r128 and [GSAP](https://gsap.com/) 3.12 from CDNs, so there's no build step. I built all the models in code, so there are no model files to load.
+Built with [Nuxt](https://nuxt.com/) 4 and Vue 3, [three.js](https://threejs.org/) r128 and [GSAP](https://gsap.com/) with ScrollTrigger. I built all the models in code, so there are no model files to load.
 
-To run it, open `index.html` in a browser.
+The page is prerendered to static HTML, so the text shows up straight away. The 3D scenes load right after, in their own chunk.
+
+```
+app/
+  app.vue              the page, and the scroll reveals
+  components/          one component per section (nav, hero, story, showcase, world...)
+  composables/         useGsap (GSAP + cleanup), useShowcase (shared category, saved choices)
+  data/                the field guide, regions and weapon numbers, as plain JS
+  lib/three/           the 3D scenes: hero forest, model viewer, world map, and the models
+```
+
+## Run it
+You need Node 20 or newer.
+
+```
+npm install
+npm run dev        # http://localhost:3000/wildwood-site/
+npm run generate   # static site in .output/public
+```
+
+Pushing to `main` builds and publishes the site to GitHub Pages (`.github/workflows/deploy.yml`).
 
 Made by Alli.
