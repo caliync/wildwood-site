@@ -127,9 +127,11 @@ export function createHeroScene(canvas,{push,onFirstFrame}){
   },{visible:true,degrade(){
     // first lower the resolution; at the floor, drop the bloom pass
     if(lowerPixelRatio(R)){if(composer)composer.setPixelRatio(R.getPixelRatio());return true;}
-    if(composer){composer.renderTarget1.dispose();composer.renderTarget2.dispose();composer=null;return true;}
+    if(composer){dropComposer();return true;}
     return false;
-  }});
+  },onError:()=>dispose()});
+  /** Frees the bloom pipeline, passes included, and falls back to plain rendering. */
+  function dropComposer(){composer.passes.forEach(p=>p.dispose&&p.dispose());composer.renderTarget1.dispose();composer.renderTarget2.dispose();composer=null;}
   let firstTimer=0;
   function foliageGeo(){const pos=[],uv=[],nor=[],idx=[];let v=0;const r=rng(7);
     function quad(base,dir,L,w,W){const tip=base.clone().addScaledVector(dir,L),hw=w.clone().multiplyScalar(W/2);
@@ -144,9 +146,12 @@ export function createHeroScene(canvas,{push,onFirstFrame}){
       const tip=dir.clone().multiplyScalar(L);tip.y-=.25;[w.clone().negate(),w.clone(),tip.clone().sub(w),tip.clone().add(w)].forEach(p=>pos.push(p.x,p.y,p.z));uv.push(0,0,1,0,0,1,1,1);for(let i=0;i<4;i++)nor.push(0,1,0);idx.push(v,v+1,v+2,v+1,v+3,v+2);v+=4;}
     const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));geo.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));geo.setAttribute('normal',new THREE.Float32BufferAttribute(nor,3));geo.setIndex(idx);return geo;}
 
-  return function dispose(){
+  let disposed=false;
+  return dispose;
+  function dispose(){
+    if(disposed)return;disposed=true;
     stop();clearTimeout(firstTimer);removeEventListener('pointermove',onMove);
-    if(composer){composer.renderTarget1.dispose();composer.renderTarget2.dispose();}
+    if(composer)dropComposer();
     disposeTree(scene);R.dispose();
-  };
+  }
 }

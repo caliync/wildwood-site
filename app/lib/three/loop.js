@@ -13,7 +13,8 @@
  * @typedef {Object} LoopOptions
  * @property {boolean} [visible=false]  Render before the first visibility check
  * @property {() => boolean} [degrade]  Lower quality one step. Return false when there is nothing left to lower.
- * @typedef {{tick:Tick, visible:boolean, degrade?:() => boolean, done?:boolean}} Entry
+ * @property {() => void} [onError]     Called once if the tick throws, to free the scene's GPU resources
+ * @typedef {{tick:Tick, visible:boolean, degrade?:() => boolean, done?:boolean, fail:() => void}} Entry
  */
 
 /** Frames slower than this (ms, smoothed) count as slow: about 40 fps. */
@@ -55,11 +56,16 @@ function frame(now) {
       e.tick(elapsed, dt)
     } catch (err) {
       console.error('Wildwood: a 3D scene stopped after an error', err)
-      entries.delete(e)
+      e.fail()
     }
   })
-  // Ignore long gaps (tab in the background, a stall while a model builds).
-  if (drew && ms < 250) {
+  if (!drew) {
+    // Nothing on screen: forget the timing so the next scene starts fresh
+    // instead of inheriting a slow scene's history.
+    avg = 16.7
+    slowSince = 0
+  } else if (ms < 250) {
+    // Ignore long gaps (tab in the background, a stall while a model builds).
     avg += (ms - avg) * 0.05
     adapt(now)
   }
@@ -74,16 +80,8 @@ function frame(now) {
  * @returns {() => void}   Removes the scene again
  */
 export function addToLoop(el, tick, opts = {}) {
-  /** @type {Entry} */
-  const entry = { tick, visible: !!opts.visible, degrade: opts.degrade }
   const io = new IntersectionObserver((es) => { entry.visible = es[0].isIntersecting })
-  io.observe(el)
-  entries.add(entry)
-  if (!raf) {
-    last = performance.now()
-    raf = requestAnimationFrame(frame)
-  }
-  return () => {
+  const remove = () => {
     io.disconnect()
     entries.delete(entry)
     if (!entries.size && raf) {
@@ -91,6 +89,20 @@ export function addToLoop(el, tick, opts = {}) {
       raf = 0
     }
   }
+  /** @type {Entry} */
+  const entry = {
+    tick,
+    visible: !!opts.visible,
+    degrade: opts.degrade,
+    fail() { remove(); opts.onError?.() },
+  }
+  io.observe(el)
+  entries.add(entry)
+  if (!raf) {
+    last = performance.now()
+    raf = requestAnimationFrame(frame)
+  }
+  return remove
 }
 
 /**

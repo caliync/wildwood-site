@@ -21,7 +21,8 @@ useGsapContext(main, (gsap) => {
  * page used to stop near the top instead.
  */
 function jumpToHash() {
-  const id = decodeURIComponent(location.hash.slice(1))
+  let id = location.hash.slice(1)
+  try { id = decodeURIComponent(id) } catch { /* malformed escape: use it as written */ }
   const el = id && document.getElementById(id)
   if (el) el.scrollIntoView({ behavior: 'instant' })
 }
