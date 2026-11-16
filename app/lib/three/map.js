@@ -1,7 +1,7 @@
 // The 3D world map: six regions around one creek, with drifting clouds.
 // Ported from the original site; the region panel and marker buttons now live
 // in Vue (components/world/*). Client-only.
-import {THREE,V3,col,rng,fbm,smooth,P,plain,glowSprite,makeRenderer,fit,disposeTree,bakeStatic,MOBILE,REDUCE} from './core.js'
+import {THREE,V3,col,rng,fbm,smooth,P,plain,glowSprite,makeRenderer,fit,disposeTree,wheelZoomGuard,bakeStatic,MOBILE,REDUCE} from './core.js'
 import {buildBarn,buildWell,buildTent,buildForge} from './models.js'
 import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls.js'
 import {gsap} from 'gsap'
@@ -25,7 +25,7 @@ export function createWorldMap(canvas){
   R.toneMappingExposure=1.05;
   const scene=new THREE.Scene();
   const cam=new THREE.PerspectiveCamera(36,1,1,600);cam.position.set(70,95,110);
-  const ctr=new OrbitControls(cam,canvas);ctr.target.set(0,0,0);ctr.enableDamping=true;ctr.enablePan=false;ctr.minDistance=70;ctr.maxDistance=220;ctr.maxPolarAngle=1.15;ctr.autoRotate=!REDUCE;ctr.autoRotateSpeed=.35;
+  const ctr=new OrbitControls(cam,canvas);ctr.target.set(0,0,0);ctr.enableDamping=true;ctr.enablePan=false;const unguard=wheelZoomGuard(ctr,canvas);ctr.minDistance=70;ctr.maxDistance=220;ctr.maxPolarAngle=1.15;ctr.autoRotate=!REDUCE;ctr.autoRotateSpeed=.35;
   scene.add(new THREE.HemisphereLight(col(0xd8d2bc),col(0x20221c),.55));
   const sun=new THREE.DirectionalLight(col(0xffe2b8),2);sun.position.set(-60,90,40);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-90,right:90,top:90,bottom:-90,near:10,far:260});scene.add(sun);
   // game world -> map: x in [-62,113], z in [-78,76]
@@ -108,7 +108,7 @@ export function createWorldMap(canvas){
     const w=canvas.clientWidth,h=canvas.clientHeight;POS.forEach((pos,i)=>{const m=marks[i];if(!m)return;v.copy(pos).project(cam);const vis=v.z<1&&Math.abs(v.x)<1.05&&Math.abs(v.y)<1.05;m.style.display=vis?'':'none';
       m.style.transform=`translate(${(v.x*.5+.5)*w}px,${(-v.y*.5+.5)*h}px) translate(-50%,-100%)`;});},{degrade:()=>lowerPixelRatio(R),onError:()=>dispose()});
   let disposed=false;
-  function dispose(){if(disposed)return;disposed=true;stop();gsap.killTweensOf([ctr.target,cam.position]);ctr.removeEventListener('start',onStart);ctr.dispose();disposeTree(scene);R.dispose();}
+  function dispose(){if(disposed)return;disposed=true;stop();gsap.killTweensOf([ctr.target,cam.position]);ctr.removeEventListener('start',onStart);unguard();ctr.dispose();disposeTree(scene);R.dispose();}
   return {
     flyTo(i){ctr.autoRotate=false;flyTo(POS[i]);},
     setMarkers(els){marks=els;},

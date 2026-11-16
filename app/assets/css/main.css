@@ -221,3 +221,6 @@ section.block{padding-block:clamp(72px,10vw,130px);scroll-margin-top:72px}
 .cta p{color:var(--dim);max-width:52ch;margin:0 auto 32px}
 footer{border-top:1px solid var(--line);padding-block:28px;color:var(--dim);font-size:13px}
 footer .wrap{display:flex;flex-wrap:wrap;gap:8px 24px;justify-content:space-between}
+/* shown when the wheel scrolls past a 3D scene without Ctrl/Cmd */
+.zoom-tip{position:absolute;left:50%;top:50%;z-index:3;transform:translate(-50%,-50%);padding:10px 16px;border-radius:6px;background:rgba(10,12,11,.78);color:var(--bone);font-family:var(--label);font-size:12px;letter-spacing:.14em;text-transform:uppercase;pointer-events:none;opacity:0;transition:opacity .25s}
+.zoom-tip.on{opacity:1}
