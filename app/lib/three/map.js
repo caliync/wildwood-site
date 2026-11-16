@@ -25,7 +25,7 @@ export function createWorldMap(canvas){
   R.toneMappingExposure=1.05;
   const scene=new THREE.Scene();
   const cam=new THREE.PerspectiveCamera(36,1,1,600);cam.position.set(70,95,110);
-  const ctr=new OrbitControls(cam,canvas);ctr.target.set(0,0,0);ctr.enableDamping=true;ctr.enablePan=false;const unguard=wheelZoomGuard(ctr,canvas);ctr.minDistance=70;ctr.maxDistance=220;ctr.maxPolarAngle=1.15;ctr.autoRotate=!REDUCE;ctr.autoRotateSpeed=.35;
+  const ctr=new OrbitControls(cam,canvas);ctr.target.set(0,0,0);ctr.enableDamping=true;ctr.enablePan=false;const unguard=wheelZoomGuard(canvas);ctr.minDistance=70;ctr.maxDistance=220;ctr.maxPolarAngle=1.15;ctr.autoRotate=!REDUCE;ctr.autoRotateSpeed=.35;
   scene.add(new THREE.HemisphereLight(col(0xd8d2bc),col(0x20221c),.55));
   const sun=new THREE.DirectionalLight(col(0xffe2b8),2);sun.position.set(-60,90,40);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-90,right:90,top:90,bottom:-90,near:10,far:260});scene.add(sun);
   // game world -> map: x in [-62,113], z in [-78,76]

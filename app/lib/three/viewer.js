@@ -40,7 +40,7 @@ export function createViewer(canvas,opts={}){
   function envVariant(k,c1,c2){const a=sg.attributes.color;for(let i=0;i<cs0.length;i++)a.array[i]=cs0[i]*k;a.needsUpdate=true;pan.material.color.setRGB(...c1);pan2.material.color.setRGB(...c2);return pm.fromScene(es,.03).texture;}
   ENV.dusk=envVariant(.55,[6,3,1.3],[.7,.65,1.1]);ENV.night=envVariant(.12,[.6,.75,1.5],[.15,.2,.55]);
   scene.environment=ENV.day;
-  const cam=new THREE.PerspectiveCamera(32,1,.01,200);const ctr=new OrbitControls(cam,canvas);ctr.enableDamping=true;ctr.enablePan=false;const unguard=wheelZoomGuard(ctr,canvas);ctr.autoRotate=!REDUCE;ctr.autoRotateSpeed=.8;ctr.maxPolarAngle=Math.PI*.49;
+  const cam=new THREE.PerspectiveCamera(32,1,.01,200);const ctr=new OrbitControls(cam,canvas);ctr.enableDamping=true;ctr.enablePan=false;const unguard=wheelZoomGuard(canvas);ctr.autoRotate=!REDUCE;ctr.autoRotateSpeed=.8;ctr.maxPolarAngle=Math.PI*.49;
   const hemi=new THREE.HemisphereLight(col(0xc8c0ac),col(0x1a1d1a),.35);scene.add(hemi);
   const key=new THREE.DirectionalLight(col(0xffe2c0),2.2);key.castShadow=true;key.shadow.mapSize.set(2048,2048);key.shadow.bias=-.0004;scene.add(key,key.target);
   const rim=new THREE.DirectionalLight(col(0x8fb4ff),1.2);scene.add(rim);
