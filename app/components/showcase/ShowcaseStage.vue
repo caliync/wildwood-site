@@ -22,7 +22,7 @@ const canvas = ref(null)
 /** @type {import('vue').Ref<'day'|'dusk'|'night'>} */
 const light = ref('day')
 const spin = ref(true)
-const hint = ref('Drag to rotate · scroll to zoom')
+const hint = ref('Drag to rotate · Ctrl + scroll to zoom')
 const lightStore = useStoredChoice('ww-light')
 
 const pad = (n) => String(n).padStart(2, '0')

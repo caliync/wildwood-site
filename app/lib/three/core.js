@@ -183,4 +183,36 @@ function bakeStatic(root){
 /** Holder so models.js can register its cached pumpkin geometry as shared. */
 const PUMPKIN_REF={geo:null};
 
-export {THREE,V3,UP,col,rng,fbm,smooth,T,tex,M,fur,plain,sh,mesh,beam,SPH,ell,P,log,box,rock,glowSprite,glint,makeSmoke,triPrism,gableRoof,makeFire,makeRenderer,fit,disposeTree,bakeStatic,PUMPKIN_REF}
+/**
+ * Lets the mouse wheel scroll the page over a 3D scene. The scene only zooms
+ * while Ctrl or Cmd is held (a trackpad pinch counts, since it arrives as a
+ * Ctrl+wheel). A plain wheel shows a short hint instead.
+ * Runs on the parent in the capture phase, before OrbitControls sees the event,
+ * and leaves `enableZoom` alone so touch pinch keeps working.
+ * @param {HTMLCanvasElement} canvas
+ * @returns {() => void} Removes the listener and the hint
+ */
+function wheelZoomGuard(canvas){
+  const host=canvas.parentElement;if(!host)return()=>{};
+  const tip=document.createElement('div');tip.className='zoom-tip';tip.setAttribute('aria-hidden','true');
+  tip.textContent=/Mac|iPhone|iPad/.test(navigator.platform)?'Hold ⌘ and scroll to zoom':'Hold Ctrl and scroll to zoom';
+  host.appendChild(tip);
+  let timer=0;
+  /** @param {WheelEvent} e */
+  const onWheel=(e)=>{
+    if(e.ctrlKey||e.metaKey){
+      tip.classList.remove('on');
+      // Over an overlay (buttons, map markers) the event would miss the canvas
+      // and zoom the browser page instead, so pass it on to the canvas.
+      if(e.target!==canvas){e.preventDefault();canvas.dispatchEvent(new WheelEvent('wheel',e));}
+      return;
+    }
+    // Plain wheel: keep it from OrbitControls so the page scrolls as usual.
+    e.stopPropagation();
+    tip.classList.add('on');clearTimeout(timer);timer=setTimeout(()=>tip.classList.remove('on'),1400);
+  };
+  host.addEventListener('wheel',onWheel,{capture:true,passive:false});
+  return()=>{clearTimeout(timer);host.removeEventListener('wheel',onWheel,{capture:true});tip.remove();};
+}
+
+export {THREE,V3,UP,col,rng,fbm,smooth,T,tex,M,fur,plain,sh,mesh,beam,SPH,ell,P,log,box,rock,glowSprite,glint,makeSmoke,triPrism,gableRoof,makeFire,makeRenderer,fit,disposeTree,bakeStatic,wheelZoomGuard,PUMPKIN_REF}

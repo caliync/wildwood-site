@@ -1,7 +1,7 @@
 // The field-guide viewer: one model at a time on a turntable, with day, dusk
 // and night lighting. Ported from the original site; the item list, info panel
 // and buttons now live in Vue (components/showcase/*). Client-only.
-import {THREE,V3,col,smooth,T,P,SPH,makeRenderer,fit,disposeTree,REDUCE} from './core.js'
+import {THREE,V3,col,smooth,T,P,SPH,makeRenderer,fit,disposeTree,wheelZoomGuard,REDUCE} from './core.js'
 import {MODELS} from './models.js'
 import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls.js'
 import {gsap} from 'gsap'
@@ -40,7 +40,7 @@ export function createViewer(canvas,opts={}){
   function envVariant(k,c1,c2){const a=sg.attributes.color;for(let i=0;i<cs0.length;i++)a.array[i]=cs0[i]*k;a.needsUpdate=true;pan.material.color.setRGB(...c1);pan2.material.color.setRGB(...c2);return pm.fromScene(es,.03).texture;}
   ENV.dusk=envVariant(.55,[6,3,1.3],[.7,.65,1.1]);ENV.night=envVariant(.12,[.6,.75,1.5],[.15,.2,.55]);
   scene.environment=ENV.day;
-  const cam=new THREE.PerspectiveCamera(32,1,.01,200);const ctr=new OrbitControls(cam,canvas);ctr.enableDamping=true;ctr.enablePan=false;ctr.autoRotate=!REDUCE;ctr.autoRotateSpeed=.8;ctr.maxPolarAngle=Math.PI*.49;
+  const cam=new THREE.PerspectiveCamera(32,1,.01,200);const ctr=new OrbitControls(cam,canvas);ctr.enableDamping=true;ctr.enablePan=false;const unguard=wheelZoomGuard(canvas);ctr.autoRotate=!REDUCE;ctr.autoRotateSpeed=.8;ctr.maxPolarAngle=Math.PI*.49;
   const hemi=new THREE.HemisphereLight(col(0xc8c0ac),col(0x1a1d1a),.35);scene.add(hemi);
   const key=new THREE.DirectionalLight(col(0xffe2c0),2.2);key.castShadow=true;key.shadow.mapSize.set(2048,2048);key.shadow.bias=-.0004;scene.add(key,key.target);
   const rim=new THREE.DirectionalLight(col(0x8fb4ff),1.2);scene.add(rim);
@@ -77,7 +77,7 @@ export function createViewer(canvas,opts={}){
   ctr.autoRotate=opts.spin!==undefined?opts.spin:!REDUCE;
   const stop=addToLoop(canvas,(t,dt)=>{fit(R,cam,canvas);ctr.update();if(upd&&!REDUCE)upd(t,dt);R.render(scene,cam);},{degrade:()=>lowerPixelRatio(R),onError:()=>dispose()});
   let disposed=false;
-  function dispose(){if(disposed)return;disposed=true;stop();if(cur)gsap.killTweensOf(cur.children[0].scale);ctr.dispose();disposeTree(scene);disposeTree(es);Object.values(ENV).forEach(t=>t.dispose());pm.dispose();R.dispose();}
+  function dispose(){if(disposed)return;disposed=true;stop();if(cur)gsap.killTweensOf(cur.children[0].scale);unguard();ctr.dispose();disposeTree(scene);disposeTree(es);Object.values(ENV).forEach(t=>t.dispose());pm.dispose();R.dispose();}
   return {
     show,
     setLight(m){if(LIGHTS[m]){mode=m;applyLight();}},

@@ -1,0 +1,35 @@
+# Builds the site on every pull request, so a broken build is caught before it
+# reaches main and goes live.
+name: Build check
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: check-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run generate
+      - name: Check the page, its 3D canvases and the 3D code were written
+        run: |
+          html=.output/public/index.html
+          test -s "$html"
+          for id in hero viewer map; do
+            grep -q "<canvas id=\"$id\"" "$html" || { echo "missing <canvas id=\"$id\">"; exit 1; }
+          done
+          # The shared render loop's error message only exists in the 3D chunk.
+          grep -lq 'a 3D scene stopped' .output/public/_nuxt/*.js || { echo "3D scene code missing"; exit 1; }
